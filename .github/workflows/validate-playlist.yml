@@ -1,0 +1,182 @@
+name: Build IPTV Playlist
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "0 */6 * * *"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "channels.m3u"
+
+permissions:
+  contents: write
+
+jobs:
+  build-playlist:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # ------------------------------------------------------
+      # Checkout repository
+      # ------------------------------------------------------
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+
+      # ------------------------------------------------------
+      # Validate channels.m3u
+      # ------------------------------------------------------
+
+      - name: Validate playlist
+        shell: bash
+        run: |
+          set -e
+
+          echo "=========================================="
+          echo "Validating channels.m3u"
+          echo "=========================================="
+
+          if [ ! -f "channels.m3u" ]; then
+            echo "ERROR: channels.m3u not found."
+            exit 1
+          fi
+
+          if [ ! -s "channels.m3u" ]; then
+            echo "ERROR: channels.m3u is empty."
+            exit 1
+          fi
+
+          if ! grep -q "^#EXTM3U" channels.m3u; then
+            echo "ERROR: Missing #EXTM3U header."
+            exit 1
+          fi
+
+          EXTINF_COUNT=$(grep -c "^#EXTINF:" channels.m3u || true)
+
+          echo "Channels found: $EXTINF_COUNT"
+
+          if [ "$EXTINF_COUNT" -eq 0 ]; then
+            echo "ERROR: No channels found."
+            exit 1
+          fi
+
+          echo "Playlist structure looks valid."
+
+
+      # ------------------------------------------------------
+      # Check EXTINF / URL pairs
+      # ------------------------------------------------------
+
+      - name: Check channel URL pairs
+        shell: bash
+        run: |
+          set -e
+
+          python3 <<'PY'
+          from pathlib import Path
+
+          lines = Path("channels.m3u").read_text(
+              encoding="utf-8",
+              errors="replace"
+          ).splitlines()
+
+          errors = []
+          channels = 0
+
+          for i, line in enumerate(lines):
+              line = line.strip()
+
+              if not line.startswith("#EXTINF:"):
+                  continue
+
+              channels += 1
+
+              url_found = False
+
+              for next_line in lines[i + 1:]:
+                  next_line = next_line.strip()
+
+                  if not next_line:
+                      continue
+
+                  if next_line.startswith("#"):
+                      break
+
+                  if next_line.startswith(
+                      ("http://", "https://", "rtmp://", "rtsp://")
+                  ):
+                      url_found = True
+
+                  break
+
+              if not url_found:
+                  errors.append(
+                      f"Channel {channels}: missing stream URL after line {i + 1}"
+                  )
+
+          print(f"Channels checked: {channels}")
+
+          if errors:
+              print("")
+              print("ERRORS:")
+              for error in errors:
+                  print(error)
+
+              raise SystemExit(1)
+
+          print("All channels have stream URLs.")
+          PY
+
+
+      # ------------------------------------------------------
+      # Build public playlist
+      # ------------------------------------------------------
+
+      - name: Build playlist
+        shell: bash
+        run: |
+          set -e
+
+          echo "Building playlist.m3u..."
+
+          cp channels.m3u playlist.m3u
+
+          echo ""
+          echo "=========================================="
+          echo "Playlist built successfully"
+          echo "=========================================="
+
+          CHANNEL_COUNT=$(grep -c "^#EXTINF:" playlist.m3u || true)
+
+          echo "Channels: $CHANNEL_COUNT"
+          echo "Output: playlist.m3u"
+
+
+      # ------------------------------------------------------
+      # Commit changes
+      # ------------------------------------------------------
+
+      - name: Commit playlist
+        shell: bash
+        run: |
+          set -e
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add playlist.m3u
+
+          if git diff --cached --quiet; then
+            echo "No changes to playlist.m3u."
+          else
+            git commit -m "Build IPTV playlist"
+            git push
+
+            echo "Playlist published successfully."
+          fi
