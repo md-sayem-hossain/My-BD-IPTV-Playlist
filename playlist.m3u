@@ -1,1 +1,16 @@
 #EXTM3U
+#EXTINF:-1 tvg-id="f27de012-0785-4152-892a-014a497e234e" tvg-name="Unite8 Sports 1" tvg-logo="https://s3.aynaott.com/storage/4380e37cf05dc85035434fe0e395974d" group-title="Sports",Unite8 Sports 1
+https://tvsen6.aynaott.com/superlaliga/index.m3u8?e=1784102509&u=ee5437a7-c16b-4700-b317-a41b77d5cba9&token=b6e220b27addbd7e852fe6671bff5738
+
+#EXTINF:-1 tvg-id="e9943a0d-a64f-4da6-9a12-023d604dc6b1" tvg-name="Unite8 Sports 2" tvg-logo="https://s3.aynaott.com/storage/bec77d9ab072a37a8912d9d4f9853298" group-title="Sports",Unite8 Sports 2
+https://tvsen7.aynaott.com/Sports1/index.m3u8?e=1784102510&u=ee5437a7-c16b-4700-b317-a41b77d5cba9&ip=52.157.32.49&token=3d148447575a06fa99eb4be6e5d9a318
+
+#EXTINF:-1 tvg-id="0a652ee3-b148-46d8-8cea-bed74d997b6c" tvg-name="FIFA+" tvg-logo="https://s3.aynaott.com/storage/dc25a8382341855cd9847537971d869c" group-title="Sports",FIFA+
+https://4397879b.wurl.com/master/f36d25e7e52f1ba8d7e56eb859c636563214f541/UmFrdXRlblRWLWRlX0ZJRkFQbHVzR2VybWFuX0hMUw/playlist.m3u8
+
+#EXTINF:-1 tvg-id="abfabaee-3898-4279-8645-3da5b0232867" tvg-name="Willow TV" tvg-logo="https://s3.aynaott.com/storage/94a778ec3219f7eb54bdf1ee07a95788" group-title="Sports",Willow TV
+https://tvsen5.aynaott.com/willowhd/index.m3u8?e=1784102512&u=ee5437a7-c16b-4700-b317-a41b77d5cba9&token=7058af1b60fb3bcfd7f687bf5b7866aa
+
+#EXTINF:-1 tvg-id="a3d48c46-7902-45e2-abf9-0fab60c4d117" tvg-name="A sports" tvg-logo="https://s3.aynaott.com/storage/64de30d2df9b2a888cb73f17614a9a8b" group-title="Sports",A sports
+https://tvsen6.aynaott.com/zv68oqPDu7MZZwmHhRxt/index.m3u8?e=1784102512&u=ee5437a7-c16b-4700-b317-a41b77d5cba9&token=968935df4fd0678de5d7fe392c0610d9
+
