@@ -2,13 +2,13 @@ name: Update IPTV Playlist
 
 on:
   schedule:
-    # Run every 6 hours
+    # Update every 6 hours
     - cron: "0 */6 * * *"
 
-  # Allow manual execution from GitHub Actions
+  # Allow manual update
   workflow_dispatch:
 
-  # Also run when sources.txt is changed
+  # Update when sources.txt changes
   push:
     branches:
       - main
@@ -23,21 +23,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # -----------------------------------
+
+      # ==========================================
       # 1. Checkout repository
-      # -----------------------------------
+      # ==========================================
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      # -----------------------------------
-      # 2. Download all M3U sources
-      # -----------------------------------
-      - name: Download playlists
+      # ==========================================
+      # 2. Download playlist
+      # ==========================================
+      - name: Download IPTV playlist
         shell: bash
         run: |
           set -e
 
-          echo "#EXTM3U" > playlist.m3u
+          TEMP_FILE="playlist.tmp.m3u"
+
+          rm -f "$TEMP_FILE"
+
+          echo "Downloading IPTV playlist..."
 
           while IFS= read -r URL || [ -n "$URL" ]; do
 
@@ -47,48 +52,60 @@ jobs:
             # Skip comments
             [[ "$URL" =~ ^# ]] && continue
 
-            echo "Downloading: $URL"
+            echo "Source: $URL"
 
             curl \
               --fail \
               --location \
-              --max-time 60 \
-              --retry 2 \
               --silent \
               --show-error \
-              "$URL" >> playlist.m3u || {
-                echo "WARNING: Failed to download $URL"
-              }
+              --max-time 120 \
+              --retry 3 \
+              --retry-delay 5 \
+              "$URL" >> "$TEMP_FILE"
 
-            echo "" >> playlist.m3u
+            echo "" >> "$TEMP_FILE"
 
           done < sources.txt
 
-      # -----------------------------------
-      # 3. Validate playlist
-      # -----------------------------------
-      - name: Validate playlist
-        run: |
-          echo "Checking playlist..."
+          # ==========================================
+          # Validate downloaded playlist
+          # ==========================================
 
-          if [ ! -s playlist.m3u ]; then
-            echo "ERROR: playlist.m3u is empty!"
+          if [ ! -s "$TEMP_FILE" ]; then
+            echo "ERROR: Downloaded playlist is empty."
+            rm -f "$TEMP_FILE"
             exit 1
           fi
 
-          if ! grep -q "#EXTM3U" playlist.m3u; then
-            echo "ERROR: Invalid M3U playlist!"
+          if ! grep -q "#EXTM3U" "$TEMP_FILE"; then
+            echo "ERROR: Downloaded file is not a valid M3U playlist."
+            rm -f "$TEMP_FILE"
             exit 1
           fi
 
-          echo "Playlist generated successfully."
-          echo "Lines:"
-          wc -l playlist.m3u
+          # ==========================================
+          # Count channels
+          # ==========================================
 
-      # -----------------------------------
-      # 4. Commit changes
-      # -----------------------------------
+          CHANNEL_COUNT=$(grep -c "^#EXTINF" "$TEMP_FILE" || true)
+
+          echo "=========================================="
+          echo "Playlist downloaded successfully"
+          echo "Channels found: $CHANNEL_COUNT"
+          echo "=========================================="
+
+          # ==========================================
+          # Only replace playlist after validation
+          # ==========================================
+
+          mv "$TEMP_FILE" playlist.m3u
+
+      # ==========================================
+      # 3. Commit changes
+      # ==========================================
       - name: Commit updated playlist
+        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -96,8 +113,10 @@ jobs:
           git add playlist.m3u
 
           if git diff --cached --quiet; then
-            echo "No changes detected."
+            echo "No playlist changes detected."
           else
-            git commit -m "Auto update playlist"
+            git commit -m "Auto update IPTV playlist"
             git push
+
+            echo "Playlist updated successfully."
           fi
